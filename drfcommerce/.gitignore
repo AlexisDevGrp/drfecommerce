@@ -26,4 +26,8 @@ htmlcov/
 ####
 db.sqlite3
 
+####
+# editor configuration
+####
 .vscode
+vscode/

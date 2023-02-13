@@ -1,13 +1,7 @@
-from pathlib import Path
-from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-
-
-
-
-
-
+from dotenv import load_dotenv
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -33,7 +27,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # External packages
     'rest_framework',
+    'drf_spectacular',
     # Internal Apps
+    'drfcommerce.product',
 ]
 
 MIDDLEWARE = [
@@ -105,9 +101,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REST_FRAMEWORK = {}
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema'
+}
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'DRF Ecommerce',
+}

@@ -31,3 +31,14 @@ db.sqlite3
 ####
 .vscode
 vscode/
+
+####
+# drf_spectacular schema file
+####
+schema.yml
+
+#####
+# coverage test remove
+#####
+.coverage
+htmlcov

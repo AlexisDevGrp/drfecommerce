@@ -5,26 +5,9 @@ from mptt.models import MPTTModel, TreeForeignKey
 from .fields import OrderField
 
 
-#   class ActiveManager(models.Manager):
-    # This will ovveride the default object manager
-    # def get_queryset(self):
-    #    return super().get_queryset().filter(is_active=True)
-    # when this will simply add a new function
-    # def isactive(self):
-    #    return self.get_queryset().filter(is_active=True)
-# last way is to use the queryset
-class ActiveQuerySet(models.QuerySet):
+class ActiveQueryset(models.QuerySet):
     def isactive(self):
-        return self.filter(is_active=True)    
-
-
-class Brand(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    is_active = models.BooleanField(default=False)
-    objects = ActiveQuerySet.as_manager()
-
-    def __str__(self):
-        return self.name
+        return self.filter(is_active=True)
 
 
 class Category(MPTTModel):
@@ -32,7 +15,7 @@ class Category(MPTTModel):
     slug = models.SlugField(max_length=255)
     is_active = models.BooleanField(default=False)
     parent = TreeForeignKey("self", on_delete=models.PROTECT, null=True, blank=True)
-    objects = ActiveQuerySet.as_manager()
+    objects = ActiveQueryset.as_manager()
 
     class MPTTMeta:
         order_insertion_by = ["name"]
@@ -41,22 +24,26 @@ class Category(MPTTModel):
         return self.name
 
 
+class Brand(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=False)
+    objects = ActiveQueryset.as_manager()
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=255)
     description = models.TextField(blank=True)
     is_digital = models.BooleanField(default=False)
-    slug = models.SlugField(max_length=255)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
     category = TreeForeignKey(
         "Category", on_delete=models.SET_NULL, null=True, blank=True
     )
     is_active = models.BooleanField(default=False)
-    # Default Manager
-    # objects = models.Manager()
-    # Custom Manager
-    # isactive = ActiveManager()
-    # objects = ActiveManager()
-    objects = ActiveQuerySet.as_manager()
+    objects = ActiveQueryset.as_manager()
 
     def __str__(self):
         return self.name
@@ -71,7 +58,7 @@ class ProductLine(models.Model):
     )
     is_active = models.BooleanField(default=False)
     order = OrderField(unique_for_field="product", blank=True)
-    objects = ActiveQuerySet.as_manager()
+    objects = ActiveQueryset.as_manager()
 
     def clean(self):
         qs = ProductLine.objects.filter(product=self.product)
@@ -85,3 +72,25 @@ class ProductLine(models.Model):
 
     def __str__(self):
         return str(self.sku)
+
+
+class ProductImage(models.Model):
+    alternative_text = models.CharField(max_length=100)
+    url = models.ImageField(upload_to=None, default="test.jpg")
+    productline = models.ForeignKey(
+        ProductLine, on_delete=models.CASCADE, related_name="product_image"
+    )
+    order = OrderField(unique_for_field="productline", blank=True)
+
+    def clean(self):
+        qs = ProductImage.objects.filter(productline=self.productline)
+        for obj in qs:
+            if self.id != obj.id and self.order == obj.order:
+                raise ValidationError("Duplicate value.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super(ProductImage, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return str(self.order)

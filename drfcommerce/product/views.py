@@ -2,20 +2,21 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-# from django.db import connection
-# from pygments import highlight
-# from pygments.formatters import TerminalFormatter
-# from pygments.lexers import SqlLexer
-# from sqlparse import format
+from django.db import connection
+from pygments import highlight
+from pygments.formatters import TerminalFormatter
+from pygments.lexers import SqlLexer
+from sqlparse import format
 from .models import Brand, Category, Product
 from .serializers import BrandSerializer, CategorySerializer, ProductSerializer
+from django.db.models import Prefetch
 
 
 @extend_schema(responses=CategorySerializer)
 class CategoryViewSet(viewsets.ViewSet):
-   
+
     queryset = Category.objects.all()
-    
+
     def list(self, request):
         serializer = CategorySerializer(self.queryset, many=True)
         return Response(serializer.data)
@@ -41,18 +42,23 @@ class ProductViewSet(viewsets.ViewSet):
     lookup_field = "slug"
 
     def retrieve(self, request, slug=None):
-        serializer = ProductSerializer(self.queryset.filter(slug=slug).select_related("category", "brand"), many=True)
+        serializer = ProductSerializer(
+            Product.objects.filter(slug=slug)
+            .select_related("category", "brand")
+            .prefetch_related(Prefetch("product_line__product_image")),
+            many=True,
+        )
         # x = self.queryset.filter(slug=slug)
         # sqlformatted = format(str(x.query), reindent=True)
         # print(highlight(sqlformatted, SqlLexer(), TerminalFormatter()))
         # return Response(serializer.data)
 
         data = Response(serializer.data)
-        # q = list(connection.queries)
-        # print(len(q))
-        # for qs in q:
-        #    sqlformatted = format(str(qs["sql"]), reindent=True)
-        #    print(highlight(sqlformatted, SqlLexer(), TerminalFormatter()))
+        q = list(connection.queries)
+        print(len(q))
+        for qs in q:
+            sqlformatted = format(str(qs["sql"]), reindent=True)
+            print(highlight(sqlformatted, SqlLexer(), TerminalFormatter()))
 
         return data
 
